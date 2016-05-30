@@ -3,6 +3,7 @@
 namespace Debesha\DoctrineProfileExtraBundle\ORM;
 
 use Doctrine\ORM\EntityManager;
+use Naex\Framework\SystemNoticeBundle\Service\SystemNotice;
 
 /**
  * Collects information about performed hydrations
@@ -75,10 +76,15 @@ class HydrationLogger
     public function stop($resultNum, $aliasMap)
     {
         if ($this->enabled) {
-            $this->hydrations[$this->currentHydration]['executionMS'] = microtime(true) - $this->start;
+            $backTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            $executionTime = microtime(true) - $this->start;
+            $this->hydrations[$this->currentHydration]['executionMS'] = $executionTime;
             $this->hydrations[$this->currentHydration]['resultNum'] = $resultNum;
             $this->hydrations[$this->currentHydration]['aliasMap'] = $aliasMap;
-            $this->hydrations[$this->currentHydration]['backTrace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            $this->hydrations[$this->currentHydration]['backTrace'] = $backTrace;
+            if ($executionTime >= 5) {
+                SystemNotice::addDevNotice('Slow hydrations', sprintf('%s, %s', $executionTime, json_encode($backTrace)));
+            }
         }
     }
 }
